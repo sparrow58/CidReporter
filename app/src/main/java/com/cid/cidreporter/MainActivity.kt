@@ -1,5 +1,6 @@
 package com.cid.cidreporter
 
+import ResultHeaderComponent
 import SearchComponent
 import android.app.Application
 import android.content.Intent
@@ -12,17 +13,24 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.cid.cidreporter.ui.theme.CidReporterTheme
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -43,30 +51,48 @@ class MainActivity : ComponentActivity() {
         }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        requestManageExternalStoragePermission()
-
         setContent {
             CidReporterTheme {
-                val viewModel = hiltViewModel<MainViewModel>()
-                val searchQuery by viewModel.searchQuery.collectAsState()
-                val searchType by viewModel.searchType.collectAsState()
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                    val viewModel = hiltViewModel<MainViewModel>()
+                    val searchResult by viewModel.searchResult.collectAsState()
 
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    Column {
-                        SearchComponent(
-                            searchQuery = searchQuery,
-                            searchType = searchType,
-                            onSearch = { query, type -> viewModel.onSearch(query, type) }
-                        )
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // SearchComponent
+                            item {
+                                SearchComponent(
+                                    searchQuery = "",
+                                    searchType = SearchType.NAME,
+                                    onSearch = { query, type -> viewModel.onSearch(query, type) }
+                                )
+                            }
 
-                        // Display search results
-                        val searchResult by viewModel.searchResult.collectAsState()
-                        LazyColumn {
-                            items(searchResult) { result ->
-                                Text(text = result, modifier = Modifier.padding(8.dp))
+
+                            // Displaying the card twice for testing purpose
+                            items(2) {
+                                searchResult?.let { result ->
+                                    if (result.data.isNotEmpty()) {
+                                        ResultHeaderComponent(
+                                            filename = result.filename,
+                                            lineNumber = result.lineNumber,
+                                            timeTaken = result.timeTaken,
+                                            data = result.data
+                                        )
+                                    } else {
+                                        Text(
+                                            text = "لم يتم العثور على نتائج",
+                                            modifier = Modifier.padding(8.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -74,7 +100,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
     // The method to request the MANAGE_EXTERNAL_STORAGE permission
     private fun requestManageExternalStoragePermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
