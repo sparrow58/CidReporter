@@ -1,6 +1,6 @@
 package com.cid.cidreporter
 
-import ResultHeaderComponent
+import ResultCardComponent
 import SearchComponent
 import android.content.Intent
 import android.net.Uri
@@ -15,12 +15,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -56,16 +57,24 @@ class MainActivity : ComponentActivity() {
             CidReporterTheme {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     val viewModel = hiltViewModel<MainViewModel>()
-                    val searchResult by viewModel.searchResult.collectAsState()
+                    val searchResults by viewModel.searchResults.collectAsState()
+                    val listState = rememberLazyListState()
 
                     Surface(
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
+                        // Automatically scroll to the last added item
+                        LaunchedEffect(searchResults.size) {
+                            if (searchResults.isNotEmpty()) {
+                                listState.animateScrollToItem(searchResults.size )
+                            }
+                        }
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            state = listState
                         ) {
                             // SearchComponent
                             item {
@@ -74,24 +83,13 @@ class MainActivity : ComponentActivity() {
                                     onSearch = { query, type -> viewModel.onSearch(query, type) })
                             }
 
-
-                            // Displaying the card twice for testing purpose
-                            items(2) {
-                                searchResult?.let { result ->
-                                    if (result.data.isNotEmpty()) {
-                                        ResultHeaderComponent(
-                                            filename = result.filename,
-                                            lineNumber = result.lineNumber,
-                                            timeTaken = result.timeTaken,
-                                            data = result.data
-                                        )
-                                    } else {
-                                        Text(
-                                            text = "لم يتم العثور على نتائج",
-                                            modifier = Modifier.padding(8.dp)
-                                        )
-                                    }
-                                }
+                            items(searchResults) { result ->
+                                ResultCardComponent(
+                                    filename = result.filename,
+                                    lineNumber = result.lineNumber,
+                                    timeTaken = result.timeTaken,
+                                    data = result.data
+                                )
                             }
                         }
                     }
@@ -111,6 +109,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-
-

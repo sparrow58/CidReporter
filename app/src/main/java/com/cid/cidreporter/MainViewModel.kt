@@ -7,9 +7,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cid.cidreporter.domain.repository.IMainRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.CellType
 import org.apache.poi.ss.usermodel.DateUtil
@@ -26,45 +30,55 @@ class MainViewModel @Inject constructor(
     private val mainRepository: IMainRepository, private val context: Application
 ) : ViewModel() {
 
-    private val _searchResult = MutableStateFlow<SearchResult?>(null)
-    val searchResult: StateFlow<SearchResult?> = _searchResult
+    private val _searchResults = MutableStateFlow<List<SearchResult>>(emptyList())
+    val searchResults: StateFlow<List<SearchResult>> = _searchResults
 
     fun onSearch(query: String, type: SearchType) {
         viewModelScope.launch {
+            _searchResults.value = emptyList()
             try {
-                val file = getExcelFile()
+                val excelFiles = getExcelFiles()
 
-                if (file != null && !file.exists()) throw Exception("file not found")
-                println("sabsab file " + file?.name)
+                // Process each Excel file in parallel
+                val sheetResults = excelFiles.map { file ->
+                    async {
+                        val sheets = getSheet(file)
+                        sheets.map { sheet ->
+                            async {
+                                val result = searchInExcel(sheet, query, type)
+                                result?.let {
+                                    // Update the UI with the result as it comes in
+                                    withContext(Dispatchers.Main) {
+                                        _searchResults.value += it
+                                    }
+                                }
+                            }
+                        }.awaitAll() // Wait for all sheet searches to complete
+                        sheets
+                    }
+                }.awaitAll() // Wait for all file processing to complete
 
-                val workbook = WorkbookFactory.create(file)
-                val sheet = workbook.getSheetAt(0)
-                val result = searchInExcel(sheet, query, type)
-                _searchResult.value = result ?: SearchResult("Not found", emptyList(), 0L, -1)
+                // Additional processing if needed
             } catch (ex: Exception) {
                 println("sabsab error $ex")
             }
         }
     }
 
-    private fun getExcelFile(): File? {
-        try {
-            val documentsDir =
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-            val cidDir = File(documentsDir, "cid")
-            val excelFile = File(cidDir, "miniصنعاء قاعدة البيانات الخاصة بالعائدين كاملة.xls")
-
-            return if (excelFile.exists()) {
-                excelFile
-            } else {
-                println("Error file not found")
-                null
-            }
-        } catch (e: Exception) {
-            println("Error " + e.message)
-        }
-        return null
+    private suspend fun getSheet(file: File): List<Sheet> = withContext(Dispatchers.IO) {
+        val workbook = WorkbookFactory.create(file)
+        return@withContext (0 until workbook.numberOfSheets).map { workbook.getSheetAt(it) }
     }
+
+    private fun getExcelFiles(): List<File> {
+        val documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+        val cidDir = File(documentsDir, "cid")
+
+        return cidDir.listFiles { _, name ->
+            name.endsWith(".xls") || name.endsWith(".xlsx")
+        }?.toList() ?: emptyList()
+    }
+
 
     private fun getHeaderRow(sheet: Sheet): Row? {
         for (value in sheet) {

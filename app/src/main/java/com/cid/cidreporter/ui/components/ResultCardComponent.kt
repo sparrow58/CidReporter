@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun ResultHeaderComponent(
+fun ResultCardComponent(
     filename: String, lineNumber: Int, timeTaken: Long, data: List<Pair<String, String>>
 ) {
     Card(
