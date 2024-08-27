@@ -2,7 +2,6 @@ package com.cid.cidreporter
 
 import ResultHeaderComponent
 import SearchComponent
-import android.app.Application
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -14,14 +13,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -35,8 +30,8 @@ import androidx.compose.ui.unit.dp
 import com.cid.cidreporter.ui.theme.CidReporterTheme
 import androidx.hilt.navigation.compose.hiltViewModel
 import dagger.hilt.android.AndroidEntryPoint
-@AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val manageExternalStoragePermissionLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -46,11 +41,17 @@ class MainActivity : ComponentActivity() {
                 // You can call your function to access files here if needed
             } else {
                 // Permission denied, show a message to the user
-                Toast.makeText(this, "Permission denied. Unable to access external storage.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    "Permission denied. Unable to access external storage.",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestManageExternalStoragePermission()
         setContent {
             CidReporterTheme {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -68,11 +69,9 @@ class MainActivity : ComponentActivity() {
                         ) {
                             // SearchComponent
                             item {
-                                SearchComponent(
-                                    searchQuery = "",
+                                SearchComponent(searchQuery = "",
                                     searchType = SearchType.NAME,
-                                    onSearch = { query, type -> viewModel.onSearch(query, type) }
-                                )
+                                    onSearch = { query, type -> viewModel.onSearch(query, type) })
                             }
 
 
@@ -100,6 +99,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
     // The method to request the MANAGE_EXTERNAL_STORAGE permission
     private fun requestManageExternalStoragePermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

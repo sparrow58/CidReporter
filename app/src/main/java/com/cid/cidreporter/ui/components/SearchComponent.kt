@@ -7,11 +7,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
 @Composable
 fun SearchComponent(
-    searchQuery: String,
-    searchType: SearchType,
-    onSearch: (String, SearchType) -> Unit
+    searchQuery: String, searchType: SearchType, onSearch: (String, SearchType) -> Unit
 ) {
     var searchText by remember { mutableStateOf(searchQuery) }
     var selectedSearchType by remember { mutableStateOf(searchType) }
@@ -34,24 +33,19 @@ fun SearchComponent(
             )
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
-                    selected = selectedSearchType == SearchType.NAME,
-                    onClick = { selectedSearchType = SearchType.NAME }
-                )
+                RadioButton(selected = selectedSearchType == SearchType.NAME,
+                    onClick = { selectedSearchType = SearchType.NAME })
                 Text(text = "الإسم")
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
-                    selected = selectedSearchType == SearchType.PHONE,
-                    onClick = { selectedSearchType = SearchType.PHONE }
-                )
+                RadioButton(selected = selectedSearchType == SearchType.PHONE,
+                    onClick = { selectedSearchType = SearchType.PHONE })
                 Text(text = "رقم الهاتف")
             }
         }
 
-        TextField(
-            value = searchText,
+        TextField(value = searchText,
             onValueChange = { searchText = it },
             label = { Text("قم بإدخال ${if (selectedSearchType == SearchType.NAME) "الإسم" else "رقم الهاتف"}") },
             keyboardOptions = KeyboardOptions(
@@ -61,7 +55,7 @@ fun SearchComponent(
         )
 
         Button(
-            onClick = { onSearch(searchText, selectedSearchType) },
+            onClick = { onSearch(searchText.trim(), selectedSearchType) },
             modifier = Modifier.align(Alignment.End)
         ) {
             Text("بحث")
